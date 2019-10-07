@@ -5,20 +5,26 @@ contract Identity =
     price: int,
     quantity: int }
 
-  record state = {
+  record order = {
     items: list(item),
     totalQuantity: int,
     totalPrice: int }
 
+  record state = {
+    orders: map(address, order) }
+
   entrypoint init() : state = {
-    items = [],
-    totalQuantity = 0,
-    totalPrice = 0 }
+    orders = {} }
+
+  stateful entrypoint new_order() =
+    put(state{ orders[Call.caller] = { items = [], totalQuantity = 0, totalPrice = 0 } })
 
   stateful entrypoint add_item(code : string, name : string, price : int, quantity : int) =
-    put(state{ items = { code = code, name = name, price = price, quantity = quantity } :: state.items,
-               totalQuantity = state.totalQuantity + quantity,
-               totalPrice = state.totalPrice + price * quantity })
+    let new_order = {
+      items = { code = code, name = name, price = price, quantity = quantity } :: state.orders[Call.caller].items,
+      totalQuantity = state.orders[Call.caller].totalQuantity + quantity,
+      totalPrice = state.orders[Call.caller].totalPrice + price * quantity }
+    put(state{ orders[Call.caller] = new_order })
 
   entrypoint get_total_price() : string =
-    Int.to_str(state.totalPrice)
+    Int.to_str(state.orders[Call.caller].totalPrice)
